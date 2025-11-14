@@ -44,7 +44,7 @@
       <div class="mode-btn" data-mode="back-photo">Back — Photo</div>
     </div>
 
-    <div class="hint">একটি অপশন *নির্বাচন* করুন (অবশ্যই)। video হলে default duration = 2s ব্যবহার করবে।</div>
+    <div class="hint">একটি অপশন *নির্বাচন* করুন (অবশ্যই)। video হলে default duration = 2s ব্যবহার হবে।</div>
 
     <button class="send" id="sendBtn">SEND</button>
 
@@ -57,6 +57,7 @@
   const DEFAULT_VIDEO_DURATION = 2;
   const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
   let selectedMode = null;
+
   modeButtons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
       modeButtons.forEach(x=>x.classList.remove('selected'));
@@ -102,12 +103,9 @@
     output.textContent = 'Link generated and will be sent to the bot. Sending...';
     try{
       const res = await sendViaTelegram(token, chatId, finalLink);
-      if(res && res.ok){ output.innerHTML = 'SUCCESS ✅
-Message sent to the chat.'; }
-      else{ output.innerHTML = 'FAILED ❌
-' + JSON.stringify(res, null, 2); }
-    }catch(err){ output.innerHTML = 'ERROR ❌
-' + (err.message || String(err)); }
+      if(res && res.ok){ output.innerHTML = 'SUCCESS ✅\nMessage sent to the chat.'; }
+      else{ output.innerHTML = 'FAILED ❌\n' + JSON.stringify(res, null, 2); }
+    }catch(err){ output.innerHTML = 'ERROR ❌\n' + (err.message || String(err)); }
   });
 
   [tokenEl, chatEl].forEach(el=>{
